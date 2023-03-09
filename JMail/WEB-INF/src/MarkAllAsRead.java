@@ -10,6 +10,5 @@ public class MarkAllAsRead extends HttpServlet{
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     MailReader reader = new MailReader();
     reader.markAllAsRead();
-
   }
 }

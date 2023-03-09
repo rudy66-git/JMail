@@ -161,6 +161,7 @@
     function getUserMail() {
       $.ajax({
         url: 'getMail',
+        url: 'getMailUsingRest',
         type: 'POST',
         beforeSend: function () {
           var loader = document.createElement("div");
@@ -168,7 +169,7 @@
           $("#mail-list").append(loader);
         },
         complete: function () {
-          // $('.loader').hide();
+          $('.loader').hide();
         },
         success: function (response) {
           mailList = response;
