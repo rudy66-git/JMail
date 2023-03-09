@@ -184,6 +184,7 @@
     function displayMail(responseText) {
       $("#mail-list").html('');
       var responseJson = responseText;
+      console.log(responseJson);
       if(responseJson != null){
         var table = document.createElement("table");
         table.setAttribute('class', 'mail-table');
@@ -283,6 +284,7 @@
 
     function getMailContent(username, div, mailId) {
       targetMail = mailList[mailId];
+      console.log(targetMail);
       var span = document.createElement('span');
       span.innerHTML = targetMail.stringContent;
       div.append(span);

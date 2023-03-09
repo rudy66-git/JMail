@@ -107,6 +107,7 @@ public class GetMailUsingRest extends HttpServlet{
       String content = new String(decoder.decode(base64Content));
 			System.out.println("decodedmail : " + content);
       message.put("stringContent", content);
+      message.put("messageId", i);
       messages.put(message);
     }
       
