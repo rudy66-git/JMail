@@ -107,7 +107,8 @@
       var optionValue = $("#options").val();
       
       $.ajax({
-        url: 'searchMail',
+        // url: 'searchMail',
+        url: 'searchMailUsingRest',
         type: 'POST',
         data : { searchvalue : searchValue , unreadstatus : unreadStatus , option : optionValue},
         beforeSend: function () {
@@ -134,7 +135,8 @@
 
     function markAllAsRead() {
       $.ajax({
-        url: 'markAllAsRead',
+        // url: 'markAllAsRead',
+        url: 'markAllAsReadUsingRest',
         type: 'POST',
         success: function (response) {
           console.log(response);

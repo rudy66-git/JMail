@@ -79,4 +79,20 @@
 		<servlet-name>getMailUsingRest</servlet-name>
 		<url-pattern>/getMailUsingRest</url-pattern>
 	</servlet-mapping>
+	<servlet>
+		<servlet-name>searchMailUsingRest</servlet-name>
+		<servlet-class>SearchMailUsingRest</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>searchMailUsingRest</servlet-name>
+		<url-pattern>/searchMailUsingRest</url-pattern>
+	</servlet-mapping>
+	<servlet>
+		<servlet-name>markAllAsReadUsingRest</servlet-name>
+		<servlet-class>MarkAllAsReadUsingRest</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>markAllAsReadUsingRest</servlet-name>
+		<url-pattern>/markAllAsReadUsingRest</url-pattern>
+	</servlet-mapping>
 </web-app>
