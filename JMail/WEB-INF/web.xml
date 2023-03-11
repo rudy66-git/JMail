@@ -95,4 +95,12 @@
 		<servlet-name>markAllAsReadUsingRest</servlet-name>
 		<url-pattern>/markAllAsReadUsingRest</url-pattern>
 	</servlet-mapping>
+	<servlet>
+		<servlet-name>getUserAccountInfo</servlet-name>
+		<servlet-class>GetUserAccountInfo</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>getUserAccountInfo</servlet-name>
+		<url-pattern>/getUserAccountInfo</url-pattern>
+	</servlet-mapping>
 </web-app>
