@@ -25,37 +25,48 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 
 public class GetAccessToken extends HttpServlet {
-  private static final String CLIENT_ID = "842896570142-brf7lciu8g137lqv0i0ghpkk8lsjuho5.apps.googleusercontent.com";
-  private static final String CLIENT_SECRET = "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";
-  private static final String CLIENT_ID_WEB = "842896570142-p2e2ir76rosjbifsarvh8f2g0161e5mc.apps.googleusercontent.com";
-  private static final String CLIENT_SECRET_WEB = "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";
-  private static final String ACCESS_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+
+  private static final String GMAIL_CLIENT_ID = "842896570142-p2e2ir76rosjbifsarvh8f2g0161e5mc.apps.googleusercontent.com";
+  private static final String GMAIL_CLIENT_SECRET = "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";
+  private static final String GMAIL_ACCESS_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+  
+  private static final String ZOHO_ACCESS_TOKEN_ENDPOINT = "https://accounts.zoho.in/oauth/v2/token";
+  private static final String ZOHO_CLIENT_ID = "1000.8ENBL33K5L6S3XEXZO3G79PN7U8F6D";
+  private static final String ZOHO_CLIENT_SECRET = "c999cddffdfe8595aba81ab2967594f3e3c3c38cc0";
+  
   private static final String REDIRECT_URI = "http://localhost:8080/JMail/callback";
-  // private static final String REDIRECT_URI = "http://localhost";
-  private static final String SCOPE = "https://mail.google.com/";
   private static final String GRANT_TYPE = "authorization_code";
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    
-    String code = (String)req.getAttribute("code");
+    HttpSession session = req.getSession(false);
+    String mail = (String) session.getAttribute("mail");
+    String code = (String) req.getAttribute("code");
+
+    String accessTokenEndpoint = null;
+    String clientId = null;
+    String clientSecret = null;
+
+    if (mail.endsWith("gmail.com")) {
+      accessTokenEndpoint = GMAIL_ACCESS_TOKEN_ENDPOINT;
+      clientId = GMAIL_CLIENT_ID;
+      clientSecret = GMAIL_CLIENT_SECRET;
+    } else if (mail.endsWith("zohotest.com")) {
+      accessTokenEndpoint = ZOHO_ACCESS_TOKEN_ENDPOINT;
+      clientId = ZOHO_CLIENT_ID;
+      clientSecret = ZOHO_CLIENT_SECRET;
+    }
+
     try {
       CloseableHttpClient client = HttpClients.createDefault();
-      HttpPost httpPost = new HttpPost(ACCESS_TOKEN_ENDPOINT);
+      HttpPost httpPost = new HttpPost(accessTokenEndpoint);
       List<NameValuePair> params = new ArrayList<NameValuePair>();
 
       params.add(new BasicNameValuePair("code", code));
       params.add(new BasicNameValuePair("redirect_uri", REDIRECT_URI));
-      params.add(new BasicNameValuePair("client_id", CLIENT_ID_WEB));
-      params.add(new BasicNameValuePair("client_secret", CLIENT_SECRET_WEB));
+      params.add(new BasicNameValuePair("client_id", clientId));
+      params.add(new BasicNameValuePair("client_secret", clientSecret));
       params.add(new BasicNameValuePair("grant_type", GRANT_TYPE));
-      // params.add(new BasicNameValuePair("scope", SCOPE));
-
-      // code=4%2F0AWtgzh4_oZS8gntt4k_a0eSkQn1BdZqWYRq2lFukt11hYdGpJlS0q6eTNn2maeqUiWhI3g
-      // redirect_uri=https%3A%2F%2Fdevelopers.google.com%2Foauthplayground
-      // client_id=407408718192.apps.googleusercontent.com
-      // client_secret=************
-      // grant_type=authorization_code
       httpPost.setEntity(new UrlEncodedFormEntity(params));
 
       ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {
@@ -64,7 +75,7 @@ public class GetAccessToken extends HttpServlet {
         public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
           int statusCode = response.getStatusLine().getStatusCode();
           HttpEntity responseEntity = response.getEntity();
-          System.out.println("Status code : "+statusCode);
+          System.out.println("Status code : " + statusCode);
           if (statusCode >= 300) {
             throw new HttpResponseException(statusCode,
                 response.getStatusLine().getReasonPhrase());
@@ -84,26 +95,22 @@ public class GetAccessToken extends HttpServlet {
       };
 
       JSONObject jsonObject = client.execute(httpPost, responseHandler);
-      System.out.println("Response : "+jsonObject.toString());
+      System.out.println("Response : " + jsonObject.toString());
       String accessToken = (String) jsonObject.get("access_token");
       String refreshToken = (String) jsonObject.get("refresh_token");
 
-      HttpSession session = req.getSession(false);
-      String mail = (String) session.getAttribute("mail");
       session.setAttribute("access_token", accessToken);
 
       UserDAO userDAO = new UserDAO();
-      System.out.println("Insertion result :"+ userDAO.storeAuthInfo(mail,accessToken , refreshToken));
+      System.out.println("Insertion result :" + userDAO.storeAuthInfo(mail, accessToken, refreshToken));
 
-      if( accessToken != null ){
+      if (accessToken != null) {
         resp.sendRedirect("welcome.html");
-      }
-      else {
+      } else {
         resp.sendRedirect("index.html");
       }
-      
-    }
-     catch (Exception e) {
+
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }

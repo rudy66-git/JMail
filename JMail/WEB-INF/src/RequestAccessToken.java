@@ -25,23 +25,43 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 
 public class RequestAccessToken extends HttpServlet{
-  private static final String CLIENT_ID_WEB = "842896570142-p2e2ir76rosjbifsarvh8f2g0161e5mc.apps.googleusercontent.com";
-  private static final String CLIENT_SECRET_WEB = "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";
-  private static final String ACCESS_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+  private static final String GMAIL_ACCESS_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+  private static final String GMAIL_CLIENT_ID = "842896570142-p2e2ir76rosjbifsarvh8f2g0161e5mc.apps.googleusercontent.com";
+  private static final String GMAIL_CLIENT_SECRET = "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";
+
+  private static final String ZOHO_ACCESS_TOKEN_ENDPOINT = "https://accounts.zoho.in/oauth/v2/token";
+  private static final String ZOHO_CLIENT_ID = "1000.8ENBL33K5L6S3XEXZO3G79PN7U8F6D";
+  private static final String ZOHO_CLIENT_SECRET = "c999cddffdfe8595aba81ab2967594f3e3c3c38cc0";
+  
   private static final String GRANT_TYPE = "refresh_token";
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     
+    String accessTokenEndpoint = null;
+    String clientId = null;
+    String clientSecret = null;
+
     String refreshToken = (String)req.getAttribute("refresh_token");
     System.out.println("Refresh tpken in request : "+refreshToken);
     String mail = (String)req.getAttribute("mail");
+
+    if (mail.endsWith("gmail.com")) {
+      accessTokenEndpoint = GMAIL_ACCESS_TOKEN_ENDPOINT;
+      clientId = GMAIL_CLIENT_ID;
+      clientSecret = GMAIL_CLIENT_SECRET;
+    } else if (mail.endsWith("zohotest.com")) {
+      accessTokenEndpoint = ZOHO_ACCESS_TOKEN_ENDPOINT;
+      clientId = ZOHO_CLIENT_ID;
+      clientSecret = ZOHO_CLIENT_SECRET;
+    }
+
     try {
       CloseableHttpClient client = HttpClients.createDefault();
-      HttpPost httpPost = new HttpPost(ACCESS_TOKEN_ENDPOINT);
+      HttpPost httpPost = new HttpPost(accessTokenEndpoint);
       List<NameValuePair> params = new ArrayList<NameValuePair>();
 
-      params.add(new BasicNameValuePair("client_id", CLIENT_ID_WEB));
-      params.add(new BasicNameValuePair("client_secret", CLIENT_SECRET_WEB));
+      params.add(new BasicNameValuePair("client_id", clientId));
+      params.add(new BasicNameValuePair("client_secret", clientSecret));
       params.add(new BasicNameValuePair("refresh_token", refreshToken));
       params.add(new BasicNameValuePair("grant_type", GRANT_TYPE));
       httpPost.setEntity(new UrlEncodedFormEntity(params));

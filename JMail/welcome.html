@@ -97,9 +97,36 @@
   <script>
     var mailId, mailList;
     $(document).ready(function () {
-      getUserMail();
-      getUserMailId();
+      getUserAccount();
+      // getUserMail();
+      // getUserMailId();
     });
+
+    function getUserAccount() {
+      $.ajax({
+        // url: 'searchMail',
+        url: 'getUserAccountInfo',
+        type: 'POST',
+        beforeSend: function () {
+          // var loader = $('.loader');
+          // console.log(loader);
+          var loader = document.createElement("div");
+          loader.setAttribute('class','loader');
+          $("#mail-list").append(loader);
+        },
+        complete: function () {
+          console.log("comepltee");
+          $('.loader').hide();
+        },
+        success: function (response) {
+          mailList = response;
+          displayMail(response);
+        },
+        error: function (response) {
+          alert("Error : "+error);
+        }
+      });
+    }
 
     function searchMail() {
       var searchValue = $("#searchValue").val();
