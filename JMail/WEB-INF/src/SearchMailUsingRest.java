@@ -25,6 +25,7 @@ public class SearchMailUsingRest extends HttpServlet {
 
   private static final String GMAIL_MESSAGE_ENDPOINT = "https://gmail.googleapis.com/gmail/v1/users/me/messages/";
   private static final String ZOHO_MESSAGE_ENDPOINT = "http://mail.zoho.in/api/accounts";
+  private static final String MICROSOFT_MESSAGE_ENDPOINT = "https://graph.microsoft.com/v1.0/me/messages";
 
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -40,8 +41,10 @@ public class SearchMailUsingRest extends HttpServlet {
       String mail = (String) session.getAttribute("mail");
       if (mail.endsWith("gmail.com"))
         messageEndpoint = GMAIL_MESSAGE_ENDPOINT;
-      else
+      else if(mail.endsWith("zohotest.com"))
         messageEndpoint = ZOHO_MESSAGE_ENDPOINT;
+      else if(mail.endsWith("outlook.com"))
+        messageEndpoint = MICROSOFT_MESSAGE_ENDPOINT;
 
       CloseableHttpClient client = HttpClients.createDefault();
       HttpGet httpGet = new HttpGet(messageEndpoint);
@@ -75,56 +78,67 @@ public class SearchMailUsingRest extends HttpServlet {
 
       if (mail.endsWith("gmail.com")) {
         JSONArray responseMessage = (JSONArray) mailList.get("messages");
-        JSONArray messages = new JSONArray();
+        JSONArray gmailMessages = new JSONArray();
         for (int i = 0; i < responseMessage.length(); i++) {
           httpGet = new HttpGet(messageEndpoint + responseMessage.getJSONObject(i).getString("id"));
           httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
           JSONObject messageObject = client.execute(httpGet, responseHandler);
-          messages.put(messageObject);
+          gmailMessages.put(messageObject);
         }
         GMailReader gmailReader = new GMailReader();
         if (option.equals("Sender"))
-          responseArray = gmailReader.searchMailBySender(messages, searchValue, unReadStatus);
+          responseArray = gmailReader.searchMailBySender(gmailMessages, searchValue, unReadStatus);
         else if (option.equals("Subject"))
-          responseArray = gmailReader.searchMailBySubject(messages, searchValue, unReadStatus);
+          responseArray = gmailReader.searchMailBySubject(gmailMessages, searchValue, unReadStatus);
         else
-          responseArray = gmailReader.searchMailByContent(messages, searchValue, unReadStatus);
+          responseArray = gmailReader.searchMailByContent(gmailMessages, searchValue, unReadStatus);
       } else if (mail.endsWith("zohotest.com")) {
 
-        // System.out.println("Message list : "+mailList);
         JSONArray dataArray = mailList.getJSONArray("data");
         JSONObject dataObject = dataArray.getJSONObject(0);
         String accountId = dataObject.getString("accountId");
         httpGet = new HttpGet(messageEndpoint + "/"+accountId+"/messages/view");
         httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
         JSONObject zohoMailList = client.execute(httpGet, responseHandler);
-        System.out.println("Zoho mail list : "+zohoMailList);
         JSONArray mailsObject = zohoMailList.getJSONArray("data");
-        System.out.println("Zoho mails object list : "+mailsObject);
         JSONArray messages = new JSONArray();
         for (int i = 0; i < mailsObject.length(); i++) {
           JSONObject messageObject = mailsObject.getJSONObject(i);
-          // System.out.println("MessageObject read status : "+messageObject.getString("status"));
-          // System.out.println("Message id : "+messageObject.getString("messageId"));
-          // System.out.println("Unread status : "+unReadStatus);
-          if((messageObject.getString("status").equals("1") && unReadStatus) || (messageObject.getString("status").equals("0") && !(unReadStatus)))
-            System.out.println("Message id condition : "+messageObject.getString("messageId"));
+          if((messageObject.getString("status").equals("1") && !(unReadStatus)) || (messageObject.getString("status").equals("0") && unReadStatus)){
             messages.put(messageObject);
+          }
         }
-
-        System.out.println("Satisfying unread status Message object : "+messages);
 
         ZOHOMailReader zohoMailReader = new ZOHOMailReader();
         if (option.equals("Sender")){
           responseArray = zohoMailReader.searchMailBySender(messages, searchValue,access_token,accountId);
-
         }
         else if (option.equals("Subject")){
-          System.out.println("In subject");
           responseArray = zohoMailReader.searchMailBySubject(messages, searchValue,access_token,accountId);
         }
         else
           responseArray = zohoMailReader.searchMailByContent(messages, searchValue,access_token,accountId);
+      }
+      else if (mail.endsWith("outlook.com")) {
+        
+        JSONArray mailsObject = mailList.getJSONArray("value");
+        JSONArray messages = new JSONArray();
+        for (int i = 0; i < mailsObject.length(); i++) {
+          JSONObject messageObject = mailsObject.getJSONObject(i);
+          if((messageObject.getBoolean("isRead") && !(unReadStatus)) || ((!messageObject.getBoolean("isRead")) && unReadStatus)){
+            messages.put(messageObject);
+          }
+        }
+
+        MicrosoftMailReader microsoftMailReader = new MicrosoftMailReader();
+        if (option.equals("Sender")){
+          responseArray = microsoftMailReader.searchMailBySender(messages,searchValue);
+        }
+        else if (option.equals("Subject")){
+          responseArray = microsoftMailReader.searchMailBySubject(messages, searchValue);
+        }
+        else
+          responseArray = microsoftMailReader.searchMailByContent(messages, searchValue);
       }
 
     } catch (Exception e) {

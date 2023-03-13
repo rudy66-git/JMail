@@ -24,6 +24,7 @@ import org.json.JSONObject;
 public class GetUserAccountInfo extends HttpServlet {
   private static final String ZOHO_MESSAGE_ENDPOINT = "http://mail.zoho.in/api/accounts";
   private static final String GMAIL_MESSAGE_ENDPOINT = "https://gmail.googleapis.com/gmail/v1/users/me/messages/";
+  private static final String MICROSOFT_MESSAGE_ENDPOINT = "https://graph.microsoft.com/v1.0/me/messages";
   
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -38,9 +39,10 @@ public class GetUserAccountInfo extends HttpServlet {
         endpoint = GMAIL_MESSAGE_ENDPOINT;
       } else if (mail.endsWith("zohotest.com")) {
         endpoint = ZOHO_MESSAGE_ENDPOINT;
+      } else if (mail.endsWith("outlook.com")) {
+        endpoint = MICROSOFT_MESSAGE_ENDPOINT;
       }
 
-      System.out.println("Access token : "+access_token);
       CloseableHttpClient client = HttpClients.createDefault();
       HttpGet httpGet = new HttpGet(endpoint);
 
@@ -52,7 +54,6 @@ public class GetUserAccountInfo extends HttpServlet {
         public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
           int statusCode = response.getStatusLine().getStatusCode();
           HttpEntity responseEntity = response.getEntity();
-          System.out.println("Status code : " + statusCode);
           if (statusCode >= 300) {
             throw new HttpResponseException(statusCode,
                 response.getStatusLine().getReasonPhrase());
@@ -60,7 +61,6 @@ public class GetUserAccountInfo extends HttpServlet {
           if (responseEntity == null) {
             throw new ClientProtocolException("No content in response");
           }
-          System.out.println("Response entity : " + responseEntity.getContent());
 
           ContentType contentType = ContentType.get(responseEntity);
           Charset charset = contentType.getCharset();
@@ -78,6 +78,9 @@ public class GetUserAccountInfo extends HttpServlet {
       } else if (mail.endsWith("zohotest.com")) {
         ZOHOMailReader zohoMailReader = new ZOHOMailReader();
         responseArray = zohoMailReader.readMail(userInfoObject,access_token);
+      } else if (mail.endsWith("outlook.com")) {
+        MicrosoftMailReader microsoftMailReader = new MicrosoftMailReader();
+        responseArray = microsoftMailReader.readMail(userInfoObject,access_token);
       }
 
     } catch (Exception e) {

@@ -10,6 +10,7 @@
 "WEB-INF/src/MailSearcher.java"
 "WEB-INF/src/MarkAllAsRead.java"
 "WEB-INF/src/MarkAllAsReadUsingRest.java"
+"WEB-INF/src/MicrosoftMailReader.java"
 "WEB-INF/src/RequestAccessToken.java"
 "WEB-INF/src/RespHandler.java"
 "WEB-INF/src/SearchMail.java"

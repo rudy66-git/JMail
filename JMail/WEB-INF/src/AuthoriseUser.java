@@ -17,6 +17,10 @@ public class AuthoriseUser extends HttpServlet {
   private static final String ZOHO_CLIENT_ID = "1000.8ENBL33K5L6S3XEXZO3G79PN7U8F6D";
   private static final String ZOHO_SCOPE = "ZohoMail.messages.READ+ZohoMail.accounts.READ";
   
+  private static final String MICROSOFT_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
+  private static final String MICROSOFT_CLIENT_ID = "379f2921-f731-4cf2-9c3d-624db1936026";
+  private static final String MICROSOFT_SCOPE = "Mail.ReadWrite offline_access";
+
   private static final String REDIRECT_URI = "http://localhost:8080/JMail/callback";
 
   @Override
@@ -40,9 +44,12 @@ public class AuthoriseUser extends HttpServlet {
       scope = ZOHO_SCOPE;
       clientId = ZOHO_CLIENT_ID;
     }
+    else if (mail.endsWith("outlook.com")) {
+      authEndpoint = MICROSOFT_AUTH_ENDPOINT;
+      scope = MICROSOFT_SCOPE;
+      clientId = MICROSOFT_CLIENT_ID;
+    }
 
-    System.out.println("Authorisation endpoint : " + authEndpoint);
-    System.out.println("Scope  : " + scope);
     try {
       boolean validUser = userDAO.userExists(mail);
       if (!validUser) {
@@ -56,7 +63,6 @@ public class AuthoriseUser extends HttpServlet {
         System.out.println("Access token : " + access_token);
         if (access_token == null) {
           String refresh_token = userDAO.getRefreshToken(mail);
-          System.out.println("Refresh token : " + refresh_token);
           RequestDispatcher requestDispatcher = req.getRequestDispatcher("requestAccessToken");
           req.setAttribute("refresh_token", refresh_token);
           req.setAttribute("mail", mail);

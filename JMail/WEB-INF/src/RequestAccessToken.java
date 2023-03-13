@@ -32,6 +32,10 @@ public class RequestAccessToken extends HttpServlet{
   private static final String ZOHO_ACCESS_TOKEN_ENDPOINT = "https://accounts.zoho.in/oauth/v2/token";
   private static final String ZOHO_CLIENT_ID = "1000.8ENBL33K5L6S3XEXZO3G79PN7U8F6D";
   private static final String ZOHO_CLIENT_SECRET = "c999cddffdfe8595aba81ab2967594f3e3c3c38cc0";
+
+  private static final String MICROSOFT_ACCESS_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+  private static final String MICROSOFT_CLIENT_ID = "379f2921-f731-4cf2-9c3d-624db1936026";
+  private static final String MICROSOFT_CLIENT_SECRET = "yP18Q~YTDvMO2UmnaHGIKTSDYJrWNplOSqwsMa_w";
   
   private static final String GRANT_TYPE = "refresh_token";
   @Override
@@ -53,6 +57,10 @@ public class RequestAccessToken extends HttpServlet{
       accessTokenEndpoint = ZOHO_ACCESS_TOKEN_ENDPOINT;
       clientId = ZOHO_CLIENT_ID;
       clientSecret = ZOHO_CLIENT_SECRET;
+    } else if (mail.endsWith("outlook.com")) {
+      accessTokenEndpoint = MICROSOFT_ACCESS_TOKEN_ENDPOINT;
+      clientId = MICROSOFT_CLIENT_ID;
+      clientSecret = MICROSOFT_CLIENT_SECRET;
     }
 
     try {
