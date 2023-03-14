@@ -24,52 +24,12 @@
 		<url-pattern>/getAccessToken</url-pattern>
 	</servlet-mapping>
 	<servlet>
-		<servlet-name>getMailId</servlet-name>
-		<servlet-class>GetMailId</servlet-class>
-	</servlet>
-	<servlet-mapping>
-		<servlet-name>getMailId</servlet-name>
-		<url-pattern>/getMailId</url-pattern>
-	</servlet-mapping>
-	<servlet>
-		<servlet-name>getMail</servlet-name>
-		<servlet-class>GetMail</servlet-class>
-	</servlet>
-	<servlet-mapping>
-		<servlet-name>getMail</servlet-name>
-		<url-pattern>/getMail</url-pattern>
-	</servlet-mapping>
-	<servlet>
-		<servlet-name>requestAccessToken</servlet-name>
-		<servlet-class>RequestAccessToken</servlet-class>
-	</servlet>
-	<servlet-mapping>
-		<servlet-name>requestAccessToken</servlet-name>
-		<url-pattern>/requestAccessToken</url-pattern>
-	</servlet-mapping>
-	<servlet>
 		<servlet-name>logout</servlet-name>
 		<servlet-class>Logout</servlet-class>
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>logout</servlet-name>
 		<url-pattern>/logout</url-pattern>
-	</servlet-mapping>
-	<servlet>
-		<servlet-name>searchMail</servlet-name>
-		<servlet-class>SearchMail</servlet-class>
-	</servlet>
-	<servlet-mapping>
-		<servlet-name>searchMail</servlet-name>
-		<url-pattern>/searchMail</url-pattern>
-	</servlet-mapping>
-	<servlet>
-		<servlet-name>markAllAsRead</servlet-name>
-		<servlet-class>MarkAllAsRead</servlet-class>
-	</servlet>
-	<servlet-mapping>
-		<servlet-name>markAllAsRead</servlet-name>
-		<url-pattern>/markAllAsRead</url-pattern>
 	</servlet-mapping>
 	<servlet>
 		<servlet-name>getMailUsingRest</servlet-name>
@@ -96,11 +56,11 @@
 		<url-pattern>/markAllAsReadUsingRest</url-pattern>
 	</servlet-mapping>
 	<servlet>
-		<servlet-name>getUserAccountInfo</servlet-name>
-		<servlet-class>GetUserAccountInfo</servlet-class>
+		<servlet-name>sendMailUsingRest</servlet-name>
+		<servlet-class>SendMailUsingRest</servlet-class>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>getUserAccountInfo</servlet-name>
-		<url-pattern>/getUserAccountInfo</url-pattern>
+		<servlet-name>sendMailUsingRest</servlet-name>
+		<url-pattern>/sendMailUsingRest</url-pattern>
 	</servlet-mapping>
 </web-app>

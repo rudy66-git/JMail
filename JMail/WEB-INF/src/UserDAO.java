@@ -4,6 +4,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.json.JSONObject;
+
 public class UserDAO {
   private static Connection connection;
   private static PreparedStatement prepStatement;
@@ -23,6 +25,33 @@ public class UserDAO {
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
+
+  public JSONObject getAppCredentials(String provider) {
+    JSONObject appCredentials = new JSONObject();
+
+    String query;
+    try {
+      query = "select clientid , clientsecret from appinfo where provider = ?";
+      prepStatement = connection.prepareStatement(query);
+      prepStatement.setString(1, provider);
+      resultSet = prepStatement.executeQuery();
+      if (resultSet.next()){
+        appCredentials.put("clientId", resultSet.getString(1));
+        appCredentials.put("clientSecret", resultSet.getString(2));
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        resultSet.close();
+        prepStatement.close();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    return appCredentials;
+
   }
 
   public boolean isAccessTokenValid(String mail) {

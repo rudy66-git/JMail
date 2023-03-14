@@ -1,25 +1,26 @@
 import java.io.IOException;
 
-import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.json.JSONObject;
+
 public class AuthoriseUser extends HttpServlet {
 
   private static final String GMAIL_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
-  private static final String GMAIL_CLIENT_ID = "842896570142-p2e2ir76rosjbifsarvh8f2g0161e5mc.apps.googleusercontent.com";
+  private static final String GMAIL_ACCESS_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
   private static final String GMAIL_SCOPE = "https%3A%2F%2Fmail.google.com%2F";
-
+  
   private static final String ZOHO_AUTH_ENDPOINT = "https://accounts.zoho.in/oauth/v2/auth";
-  private static final String ZOHO_CLIENT_ID = "1000.8ENBL33K5L6S3XEXZO3G79PN7U8F6D";
-  private static final String ZOHO_SCOPE = "ZohoMail.messages.READ+ZohoMail.accounts.READ";
+  private static final String ZOHO_ACCESS_TOKEN_ENDPOINT = "https://accounts.zoho.in/oauth/v2/token";
+  private static final String ZOHO_SCOPE = "ZohoMail.messages.READ ZohoMail.accounts.READ ZohoMail.messages.CREATE ZohoMail.messages.UPDATE";
   
   private static final String MICROSOFT_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
-  private static final String MICROSOFT_CLIENT_ID = "379f2921-f731-4cf2-9c3d-624db1936026";
-  private static final String MICROSOFT_SCOPE = "Mail.ReadWrite offline_access";
+  private static final String MICROSOFT_ACCESS_TOKEN_ENDPOINT = "https://accounts.zoho.in/oauth/v2/token";
+  private static final String MICROSOFT_SCOPE = "Mail.ReadWrite Mail.Send offline_access";
 
   private static final String REDIRECT_URI = "http://localhost:8080/JMail/callback";
 
@@ -28,27 +29,37 @@ public class AuthoriseUser extends HttpServlet {
     String authEndpoint = null;
     String scope = null;
     String clientId = null;
+    String accessTokenEndpoint = null;
     
     String mail = (String) req.getParameter("mail");
     UserDAO userDAO = new UserDAO();
     
     HttpSession session = req.getSession();
     session.setAttribute("mail", mail);
-    
+    JSONObject appCredentials = null;
+    MailReader mailReader = null;
     if (mail.endsWith("gmail.com")) {
+      appCredentials = userDAO.getAppCredentials("gmail");
       authEndpoint = GMAIL_AUTH_ENDPOINT;
       scope = GMAIL_SCOPE;
-      clientId = GMAIL_CLIENT_ID;
+      mailReader = new GMailReader();
+      accessTokenEndpoint = GMAIL_ACCESS_TOKEN_ENDPOINT;
     } else if (mail.endsWith("zohotest.com")) {
+      appCredentials = userDAO.getAppCredentials("zohomail");
       authEndpoint = ZOHO_AUTH_ENDPOINT;
       scope = ZOHO_SCOPE;
-      clientId = ZOHO_CLIENT_ID;
+      mailReader = new ZOHOMailReader();
+      accessTokenEndpoint = ZOHO_ACCESS_TOKEN_ENDPOINT;
     }
     else if (mail.endsWith("outlook.com")) {
+      appCredentials = userDAO.getAppCredentials("outlook");
       authEndpoint = MICROSOFT_AUTH_ENDPOINT;
       scope = MICROSOFT_SCOPE;
-      clientId = MICROSOFT_CLIENT_ID;
+      mailReader = new MicrosoftMailReader();
+      accessTokenEndpoint = MICROSOFT_ACCESS_TOKEN_ENDPOINT;
     }
+    if(appCredentials != null)
+      clientId = appCredentials.getString("clientId");
 
     try {
       boolean validUser = userDAO.userExists(mail);
@@ -60,15 +71,11 @@ public class AuthoriseUser extends HttpServlet {
       }
       else {
         String access_token = userDAO.getAccessToken(mail);
-        System.out.println("Access token : " + access_token);
         if (access_token == null) {
-          String refresh_token = userDAO.getRefreshToken(mail);
-          RequestDispatcher requestDispatcher = req.getRequestDispatcher("requestAccessToken");
-          req.setAttribute("refresh_token", refresh_token);
-          req.setAttribute("mail", mail);
-          requestDispatcher.forward(req, resp);
+          access_token = mailReader.requestAccessToken(mail,appCredentials,accessTokenEndpoint);
+          userDAO.updateAccessToken(access_token,mail);
+          resp.sendRedirect("welcome.html");
         } else {
-          session.setAttribute("access_token", access_token);
           resp.sendRedirect("welcome.html");
         }
 

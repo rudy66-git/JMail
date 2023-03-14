@@ -9,10 +9,10 @@ import javax.servlet.http.HttpSession;
 public class Logout extends HttpServlet {
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    String mail = (String) req.getParameter("mail");
+    HttpSession session = req.getSession(false);
+    String mail = (String) session.getAttribute("mail");
     UserDAO userDAO = new UserDAO();
     userDAO.removeAuthInfo(mail);
-    HttpSession session = req.getSession(false);
     session.invalidate();
   }
 }

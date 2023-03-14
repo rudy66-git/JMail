@@ -37,13 +37,14 @@ public class SearchMailUsingRest extends HttpServlet {
     try {
 
       HttpSession session = req.getSession(false);
-      String access_token = (String) session.getAttribute("access_token");
       String mail = (String) session.getAttribute("mail");
+      UserDAO userDAO = new UserDAO();
+      String access_token = userDAO.getAccessToken(mail);
       if (mail.endsWith("gmail.com"))
         messageEndpoint = GMAIL_MESSAGE_ENDPOINT;
-      else if(mail.endsWith("zohotest.com"))
+      else if (mail.endsWith("zohotest.com"))
         messageEndpoint = ZOHO_MESSAGE_ENDPOINT;
-      else if(mail.endsWith("outlook.com"))
+      else if (mail.endsWith("outlook.com"))
         messageEndpoint = MICROSOFT_MESSAGE_ENDPOINT;
 
       CloseableHttpClient client = HttpClients.createDefault();
@@ -97,47 +98,48 @@ public class SearchMailUsingRest extends HttpServlet {
         JSONArray dataArray = mailList.getJSONArray("data");
         JSONObject dataObject = dataArray.getJSONObject(0);
         String accountId = dataObject.getString("accountId");
-        httpGet = new HttpGet(messageEndpoint + "/"+accountId+"/messages/view");
+        httpGet = new HttpGet(messageEndpoint + "/" + accountId + "/messages/view");
         httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
         JSONObject zohoMailList = client.execute(httpGet, responseHandler);
         JSONArray mailsObject = zohoMailList.getJSONArray("data");
         JSONArray messages = new JSONArray();
         for (int i = 0; i < mailsObject.length(); i++) {
           JSONObject messageObject = mailsObject.getJSONObject(i);
-          if((messageObject.getString("status").equals("1") && !(unReadStatus)) || (messageObject.getString("status").equals("0") && unReadStatus)){
+          if ((messageObject.getString("status").equals("1") && !(unReadStatus))
+              || (messageObject.getString("status").equals("0") && unReadStatus)) {
             messages.put(messageObject);
           }
         }
 
+        System.out.println();
+        System.out.println("Messages satisfied : " + messages);
+        System.out.println();
+
         ZOHOMailReader zohoMailReader = new ZOHOMailReader();
-        if (option.equals("Sender")){
-          responseArray = zohoMailReader.searchMailBySender(messages, searchValue,access_token,accountId);
-        }
-        else if (option.equals("Subject")){
-          responseArray = zohoMailReader.searchMailBySubject(messages, searchValue,access_token,accountId);
-        }
-        else
-          responseArray = zohoMailReader.searchMailByContent(messages, searchValue,access_token,accountId);
-      }
-      else if (mail.endsWith("outlook.com")) {
-        
+        if (option.equals("Sender")) {
+          responseArray = zohoMailReader.searchMailBySender(messages, searchValue, access_token, accountId);
+        } else if (option.equals("Subject")) {
+          responseArray = zohoMailReader.searchMailBySubject(messages, searchValue, access_token, accountId);
+        } else
+          responseArray = zohoMailReader.searchMailByContent(messages, searchValue, access_token, accountId);
+      } else if (mail.endsWith("outlook.com")) {
+
         JSONArray mailsObject = mailList.getJSONArray("value");
         JSONArray messages = new JSONArray();
         for (int i = 0; i < mailsObject.length(); i++) {
           JSONObject messageObject = mailsObject.getJSONObject(i);
-          if((messageObject.getBoolean("isRead") && !(unReadStatus)) || ((!messageObject.getBoolean("isRead")) && unReadStatus)){
+          if ((messageObject.getBoolean("isRead") && !(unReadStatus))
+              || ((!messageObject.getBoolean("isRead")) && unReadStatus)) {
             messages.put(messageObject);
           }
         }
 
         MicrosoftMailReader microsoftMailReader = new MicrosoftMailReader();
-        if (option.equals("Sender")){
-          responseArray = microsoftMailReader.searchMailBySender(messages,searchValue);
-        }
-        else if (option.equals("Subject")){
+        if (option.equals("Sender")) {
+          responseArray = microsoftMailReader.searchMailBySender(messages, searchValue);
+        } else if (option.equals("Subject")) {
           responseArray = microsoftMailReader.searchMailBySubject(messages, searchValue);
-        }
-        else
+        } else
           responseArray = microsoftMailReader.searchMailByContent(messages, searchValue);
       }
 

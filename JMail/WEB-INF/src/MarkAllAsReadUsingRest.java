@@ -11,8 +11,9 @@ public class MarkAllAsReadUsingRest extends HttpServlet {
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     
     HttpSession session = req.getSession(false);
-    String access_token = (String)session.getAttribute("access_token");
-    String mail = (String)session.getAttribute("mail");
+    String mail = (String) session.getAttribute("mail");
+    UserDAO userDAO = new UserDAO();
+    String access_token = userDAO.getAccessToken(mail);
 
     if(mail.endsWith("gmail.com")){
       GMailReader gMailReader = new GMailReader();
@@ -23,7 +24,6 @@ public class MarkAllAsReadUsingRest extends HttpServlet {
       zohoMailReader.markAllAsRead(access_token);
     }
     else if(mail.endsWith("outlook.com")) {
-      System.out.println("Within servlet");
       MicrosoftMailReader microsoftMailReader = new MicrosoftMailReader();
       microsoftMailReader.markAllAsRead(access_token);
     } 

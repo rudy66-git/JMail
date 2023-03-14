@@ -74,19 +74,33 @@
   <div class="main">
     <h2>Mail Reader</h2>
     <div>
-      <select name="options" id="options" title="options" autocomplete="off" >
+      <select name="options" id="options" title="options" autocomplete="off">
         <option value="Sender">Sender</option>
         <option value="Content">Content</option>
         <option value="Subject">Subject</option>
       </select>
       <label for="searchValue">Search : </label>
-      <input type="text" name="searchValue" id="searchValue" autocomplete="off" required/>
+      <input type="text" name="searchValue" id="searchValue" autocomplete="off" required />
       <input type="checkbox" name="unread" id="unread" autocomplete="off" />
       <label for="unread">UnRead</label>
       <button onclick="searchMail()">search</button>
       <button onclick="logout()">logout</button>
       <button onclick="markAllAsRead()">MarkAllAsRead</button>
+      <button onclick="sendMail()">Send</button>
     </div>
+
+    <div>
+      <form action="#" id="messageForm">
+        <label for="to">To</label>
+        <input type="text" name="to" id="to" title="to" />
+        <label for="subject">Subject</label>
+        <input type="text" name="subject" id="subject" title="subject" />
+        <label for="content">Body</label>
+        <input type="text" name="content" id="content" title="content" />
+        <input type="file" name="file" id="file" title="file">
+      </form>
+    </div>
+
     <div class="mail-list" id="mail-list">
       <!-- <div id="noMail" style="display:none;">No mails</div> -->
       <!-- <div class="loader"></div> -->
@@ -97,21 +111,16 @@
   <script>
     var mailId, mailList;
     $(document).ready(function () {
-      getUserAccount();
-      // getUserMail();
-      // getUserMailId();
+      getMail();
     });
 
-    function getUserAccount() {
+    function getMail() {
       $.ajax({
-        // url: 'searchMail',
-        url: 'getUserAccountInfo',
+        url: 'getMailUsingRest',
         type: 'POST',
         beforeSend: function () {
-          // var loader = $('.loader');
-          // console.log(loader);
           var loader = document.createElement("div");
-          loader.setAttribute('class','loader');
+          loader.setAttribute('class', 'loader');
           $("#mail-list").append(loader);
         },
         complete: function () {
@@ -123,26 +132,53 @@
           displayMail(response);
         },
         error: function (response) {
-          alert("Error : "+error);
+          alert("Error : " + error);
         }
       });
     }
 
+    function sendMail() {
+
+      var to = $("#to").val();
+      var subject = $("#subject").val();
+      var content = $("#content").val();
+
+      var value = $("#file").val();
+
+      console.log(value);
+      // var form = $("#messageForm");
+
+      // console.log(form);
+
+      // $.ajax({
+      //   url: 'sendMailUsingRest',
+      //   data: ,
+      //   type: 'post',
+      //   success: function (response) {
+      //     console.log('success : ' + respone);
+      //   },
+      //   error: function (response) {
+      //     console.log('error : ' + respone);
+      //   }
+      // });
+
+    }
+
     function searchMail() {
-      var searchValue = $("#searchValue").val();
+      var searchValue = $("#sea#rchValue").val();
       var unreadStatus = $("#unread").prop('checked');
       var optionValue = $("#options").val();
-      
+
       $.ajax({
         // url: 'searchMail',
         url: 'searchMailUsingRest',
         type: 'POST',
-        data : { searchvalue : searchValue , unreadstatus : unreadStatus , option : optionValue},
+        data: { searchvalue: searchValue, unreadstatus: unreadStatus, option: optionValue },
         beforeSend: function () {
           // var loader = $('.loader');
           // console.log(loader);
           var loader = document.createElement("div");
-          loader.setAttribute('class','loader');
+          loader.setAttribute('class', 'loader');
           $("#mail-list").append(loader);
         },
         complete: function () {
@@ -187,40 +223,17 @@
       });
     }
 
-    function getUserMail() {
-      $.ajax({
-        url: 'getMail',
-        url: 'getMailUsingRest',
-        type: 'POST',
-        beforeSend: function () {
-          var loader = document.createElement("div");
-          loader.setAttribute('class','loader');
-          $("#mail-list").append(loader);
-        },
-        complete: function () {
-          $('.loader').hide();
-        },
-        success: function (response) {
-          mailList = response;
-          displayMail(response);
-        },
-        error: function (response) {
-          alert(response);
-        }
-      });
-    }
-
     function displayMail(responseText) {
       $("#mail-list").html('');
       var responseJson = responseText;
       console.log(responseJson);
-      if(responseJson != null){
+      if (responseJson != null) {
         var table = document.createElement("table");
         table.setAttribute('class', 'mail-table');
         table.cellPadding = "5px";
         var thead = document.createElement("thead");
         var tbody = document.createElement("tbody");
-  
+
         var headerRow = document.createElement("tr");
         var headerCell1 = document.createElement("th");
         headerCell1.textContent = "S.No.";
@@ -233,7 +246,7 @@
         headerCell4.textContent = "Subject";
         var headerCell5 = document.createElement("th");
         headerCell5.textContent = "View Content";
-        
+
         headerRow.appendChild(headerCell1);
         headerRow.appendChild(headerCell2);
         headerRow.appendChild(headerCell3);
@@ -241,25 +254,25 @@
         headerRow.appendChild(headerCell5);
         thead.appendChild(headerRow);
         table.appendChild(thead);
-  
+
         let tRow = null;
         for (var i = 0; i < responseJson.length; i++) {
-  
+
           tRow = document.createElement('tr');
           var serialNumber = document.createElement('td');
           serialNumber.innerText = i + 1;
-         
+
           var from = document.createElement('td');
           var fromValue = responseJson[i].from;
           from.innerText = fromValue;
           from.colSpan = "3";
-          
+
           var date = document.createElement('td');
           date.innerText = responseJson[i].date;
-          
+
           var subject = document.createElement('td');
           subject.innerText = responseJson[i].subject;
-          
+
           var details = document.createElement('td');
           details.setAttribute('class', 'bi bi-chevron-compact-left');
           details.setAttribute('value', i + 1);
@@ -268,7 +281,7 @@
           details.onclick = function () {
             displayMailContentArea(this);
           };
-          
+
           tRow.setAttribute("mailId", responseJson[i].messageId);
           tRow.setAttribute("id", 'row' + (i + 1));
           tRow.append(serialNumber, from, date, subject, details);
@@ -279,17 +292,17 @@
       }
       else {
         var noMailDiv = $("#noMail");
-        noMailDiv.css('display','block');
+        noMailDiv.css('display', 'block');
         $("#mail-list").append(noMailDiv);
       }
     }
 
     function displayMailContentArea(object) {
-      
+
       var nthRow = object.getAttribute("value");
       var rowId = 'row' + nthRow;
       var tableRow = document.getElementById(rowId);
-      
+
       if (object.classList.contains('bi-chevron-compact-left')) {
         object.setAttribute('class', 'bi bi-chevron-compact-down');
         var mailId = tableRow.getAttribute("mailId");

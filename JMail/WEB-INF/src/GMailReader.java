@@ -22,8 +22,11 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class GMailReader {
+public class GMailReader extends MailReader{
+  // private static final String ACCESS_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+  // private static final String REFRESH_TOKEN_GRANT_TYPE = "refresh_token";
   private static final String GMAIL_MESSAGE_ENDPOINT = "https://gmail.googleapis.com/gmail/v1/users/me/messages/";
+  // private static final String GMAIL_SEND_MESSAGE_ENDPOINT = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
   private static JSONArray responseArray;
 
   public JSONArray readMail(JSONObject messageListObject, String access_token) {
@@ -252,5 +255,7 @@ public class GMailReader {
     }
     return responseArray;
   }
+
+  
 
 }
