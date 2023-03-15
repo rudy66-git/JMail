@@ -80,8 +80,9 @@ public class UserDAO {
       prepStatement = connection.prepareStatement(query);
       prepStatement.setString(1, mail);
       resultSet = prepStatement.executeQuery();
-      if (resultSet.next())
+      if (resultSet.next()){
         accessToken = resultSet.getString(1);
+      }
     } catch (Exception e) {
       e.printStackTrace();
     } finally {

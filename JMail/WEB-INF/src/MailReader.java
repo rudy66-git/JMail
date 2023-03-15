@@ -53,6 +53,7 @@ abstract public class MailReader{
         public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
           int statusCode = response.getStatusLine().getStatusCode();
           HttpEntity responseEntity = response.getEntity();
+          System.out.println("Response code : "+statusCode);
           if (statusCode >= 300) {
             throw new HttpResponseException(statusCode,
                 response.getStatusLine().getReasonPhrase());
@@ -90,7 +91,8 @@ abstract public class MailReader{
       params.add(new BasicNameValuePair("client_id", clientId));
       params.add(new BasicNameValuePair("client_secret", clientSecret));
       params.add(new BasicNameValuePair("grant_type", ACCESS_TOKEN_GRANT_TYPE));
-      params.add(new BasicNameValuePair("scope", scope));
+      if(mail.endsWith("outlook.com"))
+        params.add(new BasicNameValuePair("scope", scope));
       httpPost.setEntity(new UrlEncodedFormEntity(params));
 
       ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {

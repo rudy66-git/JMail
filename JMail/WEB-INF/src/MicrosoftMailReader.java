@@ -3,6 +3,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Base64;
+import java.util.List;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -11,6 +13,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -19,23 +22,21 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class MicrosoftMailReader extends MailReader{
+public class MicrosoftMailReader extends MailReader {
   private static JSONArray responseArray;
   private static JSONArray searchResponseArray;
   private static final String MICROSOFT_MESSAGE_ENDPOINT = "https://graph.microsoft.com/v1.0/me/messages/";
-  // private static final String MICROSOFT_SEND_MESSAGE_ENDPOINT = "https://graph.microsoft.com/v1.0/me/sendMail";
+  private static final String MICROSOFT_SEND_MESSAGE_ENDPOINT = "https://graph.microsoft.com/v1.0/me/sendMail";
 
   public JSONArray readMail(JSONObject userInfoObject, String access_token) {
 
     JSONArray responseMessage = (JSONArray) userInfoObject.getJSONArray("value");
 
-    System.out.println("Value : "+responseMessage);
-
     try {
       responseArray = new JSONArray();
       for (int i = 0; i < responseMessage.length(); i++) {
         JSONObject messageObject = responseMessage.getJSONObject(i);
-        if(messageObject.has("from")){
+        if (messageObject.has("from")) {
           responseArray.put(getMessageObject(messageObject, i));
         }
       }
@@ -68,7 +69,7 @@ public class MicrosoftMailReader extends MailReader{
       JSONObject emailAddressObject = senderObject.getJSONObject("emailAddress");
       if (emailAddressObject.getString("name").contains(searchValue)
           || emailAddressObject.getString("address").contains(searchValue)) {
-            searchResponseArray.put(getMessageObject(messageObject, k++));
+        searchResponseArray.put(getMessageObject(messageObject, k++));
       }
     }
     return searchResponseArray;
@@ -133,127 +134,136 @@ public class MicrosoftMailReader extends MailReader{
         httpPatch.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
         JSONObject read = new JSONObject();
-        read.put("isRead",true); 
+        read.put("isRead", true);
 
         StringEntity params = new StringEntity(read.toString());
         httpPatch.setEntity(params);
-        JSONObject  reponseJSON = client.execute(httpPatch,responseHandler);
-        System.out.println("Respose object : "+reponseJSON);
+        JSONObject reponseJSON = client.execute(httpPatch, responseHandler);
+        System.out.println("Respose object : " + reponseJSON);
       }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  public JSONObject composeMail(String to ,String subject, String contentType, String content ) {
-    
+  public JSONObject composeMail(String to, String subject, String contentType, String content) {
+
     JSONObject messageObject = new JSONObject();
     JSONObject messageContentObject = new JSONObject();
 
-    //subject
-    messageContentObject.put("subject",subject);
+    // subject
+    messageContentObject.put("subject", subject);
 
-    //body
+    // body
     JSONObject bodyObject = new JSONObject();
-    bodyObject.put("contentType",contentType);
-    bodyObject.put("content",content);
-    messageContentObject.put("body",bodyObject);
+    bodyObject.put("contentType", contentType);
+    bodyObject.put("content", content);
+    messageContentObject.put("body", bodyObject);
 
-    //to address
+    // to address
     JSONArray toObjects = new JSONArray();
     JSONObject toObject = new JSONObject();
     JSONObject emailAddresssObject = new JSONObject();
-    emailAddresssObject.put("address",to);
-    toObject.put("emailAddress",emailAddresssObject);
+    emailAddresssObject.put("address", to);
+    toObject.put("emailAddress", emailAddresssObject);
     toObjects.put(toObject);
-    messageContentObject.put("toRecipients",toObjects);
+    messageContentObject.put("toRecipients", toObjects);
 
-
-    messageObject.put("message",messageContentObject);
+    messageObject.put("message", messageContentObject);
     return messageObject;
   }
 
-  public JSONObject addAttachment(JSONObject messageObject , File[] files) {
+  String encodeFileContent(byte[] contentBytes) {
+
+    String encodedContent = Base64.getEncoder().encodeToString(contentBytes);
+    return encodedContent;
+  }
+
+  public JSONObject addAttachment(JSONObject messageObject, List<File> files,List<String> contentTypes) {
 
     JSONArray attachmentsObject = new JSONArray();
-    JSONObject messageContentObject = (JSONObject) messageObject.remove("Message");
+    JSONObject messageContentObject = (JSONObject) messageObject.remove("message");
+    try {
+      for (int i = 0; i < files.size(); i++) {
 
-    for(int i = 0; i<files.length;i++) {
+        String filename = files.get(i).getName();
+        String path = files.get(i).getPath();
 
-      String filename = files[i].getName();
-      System.out.println("Filename  : "+filename);
+        byte[] contentBytes = null;
+        contentBytes = Files.readAllBytes(Paths.get(path));
 
-      byte[] contentBytes = null;
-      try {
-        contentBytes = Files.readAllBytes(Paths.get(filename));
-        System.out.println("Bytes stored : "+contentBytes.toString());
-      } catch (IOException e) {
-        e.printStackTrace();
+        String encodedBytes = encodeFileContent(contentBytes);
+
+        System.out.println("Encoded string : "+encodedBytes);
+
+        JSONObject attachmentObject = new JSONObject();
+        attachmentObject.put("@odata.type", "#microsoft.graph.fileAttachment");
+        attachmentObject.put("name", filename);
+        attachmentObject.put("contentType",contentTypes.get(i));
+        attachmentObject.put("contentBytes", encodedBytes);
+        attachmentsObject.put(attachmentObject);
+        files.get(i).deleteOnExit();
       }
 
-      JSONObject attachmentObject = new JSONObject();
-      attachmentObject.put("Name",filename);
-      attachmentObject.put("ContentBytes",contentBytes.toString());
-      attachmentsObject.put(attachmentObject);
+      messageContentObject.put("attachments", attachmentsObject);
+      messageObject.put("message", messageContentObject);
+    } catch (Exception e) {
+      e.printStackTrace();
     }
-
-    messageContentObject.put("attachements",attachmentsObject);
-    
-    messageObject.put("Message",messageContentObject);
 
     return messageObject;
   }
 
-  public void sendMail(String access_token ,String to ,String subject, String contentType, String content ,boolean hasAttachment , File... files) {
+  public void sendMail(String access_token, String to, String subject, String contentType, String content,
+      boolean hasAttachment, List<File> files,List<String> contentTypes) {
 
-    JSONObject messageObject = composeMail(to,subject,contentType,content);
+    JSONObject messageObject = composeMail(to, subject, contentType, content);
 
-    System.out.println("Mail message object : "+messageObject);
+    System.out.println("");
 
-    if(hasAttachment) 
-      messageObject = addAttachment(messageObject , files);
+    System.out.println("Mail message object : " + messageObject);
 
-    System.out.println("Response object : "+messageObject);
-    // try {
-    //   CloseableHttpClient client = HttpClients.createDefault();
+    if (hasAttachment)
+      messageObject = addAttachment(messageObject, files,contentTypes);
 
-    //   ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {
+    System.out.println("Response object : " + messageObject);
+    try {
+      CloseableHttpClient client = HttpClients.createDefault();
 
-    //     @Override
-    //     public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
-    //       int statusCode = response.getStatusLine().getStatusCode();
-    //       HttpEntity responseEntity = response.getEntity();
-    //       System.out.println("Response entity : "+responseEntity);
-    //       if (statusCode >= 300) {
-    //         throw new HttpResponseException(statusCode,
-    //             response.getStatusLine().getReasonPhrase());
-    //       }
-    //       JSONObject responseJSON = null;
-    //       if(statusCode == 202){
-    //         responseJSON = new JSONObject();
-    //       }
-    //       return responseJSON;
-    //     }
-    //   };
+      ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {
 
-    //   HttpPost httpPost = new HttpPost(MICROSOFT_SEND_MESSAGE_ENDPOINT);
-    //   httpPost.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
-    //   httpPost.addHeader(HttpHeaders.CONTENT_TYPE,"application/json");
+        @Override
+        public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+          int statusCode = response.getStatusLine().getStatusCode();
+          HttpEntity responseEntity = response.getEntity();
+          System.out.println("Response entity : " + responseEntity);
+          if (statusCode >= 300) {
+            throw new HttpResponseException(statusCode,
+                response.getStatusLine().getReasonPhrase());
+          }
+          JSONObject responseJSON = null;
+          if (statusCode == 202) {
+            responseJSON = new JSONObject();
+          }
+          return responseJSON;
+        }
+      };
 
-    //   StringEntity bodyContent = new StringEntity(messageObject.toString());
+      HttpPost httpPost = new HttpPost(MICROSOFT_SEND_MESSAGE_ENDPOINT);
+      httpPost.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
+      httpPost.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
-    //   httpPost.setEntity(bodyContent);
-    //   JSONObject  responseObject = client.execute(httpPost,responseHandler);
+      StringEntity bodyContent = new StringEntity(messageObject.toString());
 
-    //   System.out.println("Response json object after sending mail : "+responseObject);
+      httpPost.setEntity(bodyContent);
+      JSONObject responseObject = client.execute(httpPost, responseHandler);
 
-    // }
-    // catch(Exception e) {
-    //   e.printStackTrace();
-    // }
+      System.out.println("Response json object after sending mail :" + responseObject);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
 
   }
-
-
 
 }

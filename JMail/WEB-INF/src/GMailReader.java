@@ -42,7 +42,6 @@ public class GMailReader extends MailReader{
         public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
           int statusCode = response.getStatusLine().getStatusCode();
           HttpEntity responseEntity = response.getEntity();
-          System.out.println("Status code : " + statusCode);
           if (statusCode >= 300) {
             throw new HttpResponseException(statusCode,
                 response.getStatusLine().getReasonPhrase());
@@ -50,7 +49,6 @@ public class GMailReader extends MailReader{
           if (responseEntity == null) {
             throw new ClientProtocolException("No content in response");
           }
-          System.out.println("Response entity : " + responseEntity.getContent());
   
           ContentType contentType = ContentType.get(responseEntity);
           Charset charset = contentType.getCharset();
@@ -67,7 +65,6 @@ public class GMailReader extends MailReader{
         httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
   
         JSONObject messageObject = client.execute(httpGet, responseHandler);
-        System.out.println("Message object : " + messageObject);
         JSONObject payloadObject = messageObject.getJSONObject("payload");
         JSONArray headersObject = payloadObject.getJSONArray("headers");
   

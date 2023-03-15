@@ -19,7 +19,7 @@ public class AuthoriseUser extends HttpServlet {
   private static final String ZOHO_SCOPE = "ZohoMail.messages.READ ZohoMail.accounts.READ ZohoMail.messages.CREATE ZohoMail.messages.UPDATE";
   
   private static final String MICROSOFT_AUTH_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
-  private static final String MICROSOFT_ACCESS_TOKEN_ENDPOINT = "https://accounts.zoho.in/oauth/v2/token";
+  private static final String MICROSOFT_ACCESS_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
   private static final String MICROSOFT_SCOPE = "Mail.ReadWrite Mail.Send offline_access";
 
   private static final String REDIRECT_URI = "http://localhost:8080/JMail/callback";
@@ -73,6 +73,7 @@ public class AuthoriseUser extends HttpServlet {
         String access_token = userDAO.getAccessToken(mail);
         if (access_token == null) {
           access_token = mailReader.requestAccessToken(mail,appCredentials,accessTokenEndpoint);
+          System.out.println("Access token : "+access_token);
           userDAO.updateAccessToken(access_token,mail);
           resp.sendRedirect("welcome.html");
         } else {

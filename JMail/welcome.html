@@ -92,12 +92,12 @@
     <div>
       <form action="#" id="messageForm">
         <label for="to">To</label>
-        <input type="text" name="to" id="to" title="to" />
+        <input type="text" name="to" id="to" title="to" autocomplete="off"/>
         <label for="subject">Subject</label>
-        <input type="text" name="subject" id="subject" title="subject" />
+        <input type="text" name="subject" id="subject" title="subject" autocomplete="off"/>
         <label for="content">Body</label>
-        <input type="text" name="content" id="content" title="content" />
-        <input type="file" name="file" id="file" title="file">
+        <input type="text" name="content" id="content" title="content" autocomplete="off"/>
+        <input type="file" name="file" id="file" title="file" autocomplete="off" multiple>
       </form>
     </div>
 
@@ -132,35 +132,39 @@
           displayMail(response);
         },
         error: function (response) {
-          alert("Error : " + error);
+          alert("Error : " + response);
         }
       });
     }
 
     function sendMail() {
 
-      var to = $("#to").val();
-      var subject = $("#subject").val();
-      var content = $("#content").val();
+      var form = $("#messageForm")[0];
 
-      var value = $("#file").val();
+      var fileValue = fileObject.value;
 
-      console.log(value);
-      // var form = $("#messageForm");
+      var hasAttachment = true;
+      var data = new FormData(form);
 
-      // console.log(form);
+      if(fileValue == "")
+        hasAttachment = false;
+      data.append("hasAttachment",hasAttachment);
 
-      // $.ajax({
-      //   url: 'sendMailUsingRest',
-      //   data: ,
-      //   type: 'post',
-      //   success: function (response) {
-      //     console.log('success : ' + respone);
-      //   },
-      //   error: function (response) {
-      //     console.log('error : ' + respone);
-      //   }
-      // });
+      $.ajax({
+        url: 'sendMailUsingRest',
+        encType: "multipart/form-data",
+        cache: false,
+        processData: false,
+        contentType: false,
+        data: data,
+        type: 'post',
+        success: function (response) {
+          console.log('success : ' + response);
+        },
+        error: function (response) {
+          console.log('error : ' + response);
+        }
+      });
 
     }
 
