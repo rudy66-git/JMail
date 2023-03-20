@@ -11,7 +11,6 @@ public class RespHandler  extends HttpServlet{
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     String code = req.getParameter("code");
-    System.out.println("Code : "+code);
 
     if(code != null){
       req.setAttribute("code", code);

@@ -38,6 +38,7 @@ public class AuthoriseUser extends HttpServlet {
     session.setAttribute("mail", mail);
     JSONObject appCredentials = null;
     MailReader mailReader = null;
+    
     if (mail.endsWith("gmail.com")) {
       appCredentials = userDAO.getAppCredentials("gmail");
       authEndpoint = GMAIL_AUTH_ENDPOINT;

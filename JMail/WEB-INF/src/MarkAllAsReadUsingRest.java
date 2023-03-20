@@ -21,11 +21,11 @@ public class MarkAllAsReadUsingRest extends HttpServlet {
     }
     else if(mail.endsWith("zohotest.com")) {
       ZOHOMailReader zohoMailReader = new ZOHOMailReader();
-      zohoMailReader.markAllAsRead(access_token);
+      // zohoMailReader.markAllAsRead(access_token);
     }
     else if(mail.endsWith("outlook.com")) {
       MicrosoftMailReader microsoftMailReader = new MicrosoftMailReader();
-      microsoftMailReader.markAllAsRead(access_token);
+      // microsoftMailReader.markAllAsRead(access_token);
     } 
   }
 }

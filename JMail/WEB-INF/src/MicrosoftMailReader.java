@@ -1,30 +1,40 @@
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.List;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpResponseException;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.ClientProtocolException;
+import org.apache.hc.client5.http.HttpResponseException;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPatch;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class MicrosoftMailReader extends MailReader {
+
   private static JSONArray responseArray;
   private static JSONArray searchResponseArray;
+  private static final String UPLOAD_DIRECTORY = "C:/Program Files/Apache Software Foundation/Tomcat 9.0/webapps//JMail/upload/";
   private static final String MICROSOFT_MESSAGE_ENDPOINT = "https://graph.microsoft.com/v1.0/me/messages/";
   private static final String MICROSOFT_SEND_MESSAGE_ENDPOINT = "https://graph.microsoft.com/v1.0/me/sendMail";
 
@@ -36,14 +46,87 @@ public class MicrosoftMailReader extends MailReader {
       responseArray = new JSONArray();
       for (int i = 0; i < responseMessage.length(); i++) {
         JSONObject messageObject = responseMessage.getJSONObject(i);
+        System.out.println();
+        System.out.println(i + " Message object : " + messageObject);
+        System.out.println();
         if (messageObject.has("from")) {
-          responseArray.put(getMessageObject(messageObject, i));
+          JSONObject responseObject = getMessageObject(messageObject, i);
+          String id = messageObject.getString("id");
+          if (messageObject.getBoolean("hasAttachments")) {
+            responseObject.put("hasAttachments", true);
+            responseObject = getAttachments(responseObject, access_token, id);
+          } else {
+            responseObject.put("hasAttachments", false);
+          }
+          responseArray.put(responseObject);
         }
+
       }
     } catch (Exception e) {
       e.printStackTrace();
     }
     return responseArray;
+  }
+
+  private JSONObject getAttachments(JSONObject messageObject, String access_token, String id) {
+    try {
+
+      CloseableHttpClient client = HttpClients.createDefault();
+
+      HttpGet httpGet = new HttpGet(MICROSOFT_MESSAGE_ENDPOINT + id + "/attachments");
+      httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
+
+      HttpClientResponseHandler<JSONObject> myResponseHandler = new MyResponseHandler();
+
+      JSONObject responseObject = client.execute(httpGet, myResponseHandler);
+
+      JSONArray attachments = responseObject.getJSONArray("value");
+
+      for (int i = 0; i < attachments.length(); i++) {
+
+        JSONObject attachmentObject = attachments.getJSONObject(i);
+
+        String fileName = attachmentObject.getString("name");
+        String contentBytes = attachmentObject.getString("contentBytes");
+        byte[] bytes = Base64.getDecoder().decode(contentBytes);
+
+        try (OutputStream stream = new FileOutputStream(UPLOAD_DIRECTORY + fileName)) {
+          stream.write(bytes);
+        }
+        File file = new File(UPLOAD_DIRECTORY + fileName);
+        messageObject.put("file" + i, file);
+      }
+
+      return messageObject;
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    return null;
+  }
+
+  public JSONArray searchMail(JSONObject mailList, String access_token, String option, String searchValue,
+      boolean unReadStatus) {
+    JSONArray searchRespArray = null;
+    JSONArray mailsObject = mailList.getJSONArray("value");
+    JSONArray messages = new JSONArray();
+    for (int i = 0; i < mailsObject.length(); i++) {
+      JSONObject messageObject = mailsObject.getJSONObject(i);
+      if ((messageObject.getBoolean("isRead") && !(unReadStatus))
+          || ((!messageObject.getBoolean("isRead")) && unReadStatus)) {
+        messages.put(messageObject);
+      }
+    }
+    if (option.equals("Sender")) {
+      searchRespArray = searchMailBySender(messages, searchValue);
+    } else if (option.equals("Subject")) {
+      searchRespArray = searchMailBySubject(messages, searchValue);
+    } else {
+      searchRespArray = searchMailByContent(messages, searchValue);
+    }
+    return searchRespArray;
+
   }
 
   public JSONObject getMessageObject(JSONObject messageObject, int i) {
@@ -58,6 +141,7 @@ public class MicrosoftMailReader extends MailReader {
     message.put("id", messageObject.getString("id"));
     message.put("date", messageObject.getString("receivedDateTime"));
     return message;
+
   }
 
   public JSONArray searchMailBySender(JSONArray messages, String searchValue) {
@@ -105,27 +189,7 @@ public class MicrosoftMailReader extends MailReader {
     try {
       CloseableHttpClient client = HttpClients.createDefault();
 
-      ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {
-
-        @Override
-        public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
-          int statusCode = response.getStatusLine().getStatusCode();
-          HttpEntity responseEntity = response.getEntity();
-          if (statusCode >= 300) {
-            throw new HttpResponseException(statusCode,
-                response.getStatusLine().getReasonPhrase());
-          }
-          if (responseEntity == null) {
-            throw new ClientProtocolException("No content in response");
-          }
-
-          ContentType contentType = ContentType.get(responseEntity);
-          Charset charset = contentType.getCharset();
-          String json = EntityUtils.toString(responseEntity, charset);
-          JSONObject responseJSON = new JSONObject(json);
-          return responseJSON;
-        }
-      };
+      HttpClientResponseHandler<JSONObject> myResponseHandler = new MyResponseHandler();
 
       for (int i = 0; i < responseArray.length(); i++) {
         HttpPatch httpPatch = new HttpPatch(
@@ -138,7 +202,7 @@ public class MicrosoftMailReader extends MailReader {
 
         StringEntity params = new StringEntity(read.toString());
         httpPatch.setEntity(params);
-        JSONObject reponseJSON = client.execute(httpPatch, responseHandler);
+        JSONObject reponseJSON = client.execute(httpPatch, myResponseHandler);
         System.out.println("Respose object : " + reponseJSON);
       }
     } catch (Exception e) {
@@ -179,7 +243,7 @@ public class MicrosoftMailReader extends MailReader {
     return encodedContent;
   }
 
-  public JSONObject addAttachment(JSONObject messageObject, List<File> files,List<String> contentTypes) {
+  public JSONObject addAttachment(JSONObject messageObject, List<File> files, List<String> contentTypes) {
 
     JSONArray attachmentsObject = new JSONArray();
     JSONObject messageContentObject = (JSONObject) messageObject.remove("message");
@@ -194,12 +258,10 @@ public class MicrosoftMailReader extends MailReader {
 
         String encodedBytes = encodeFileContent(contentBytes);
 
-        System.out.println("Encoded string : "+encodedBytes);
-
         JSONObject attachmentObject = new JSONObject();
         attachmentObject.put("@odata.type", "#microsoft.graph.fileAttachment");
         attachmentObject.put("name", filename);
-        attachmentObject.put("contentType",contentTypes.get(i));
+        attachmentObject.put("contentType", contentTypes.get(i));
         attachmentObject.put("contentBytes", encodedBytes);
         attachmentsObject.put(attachmentObject);
         files.get(i).deleteOnExit();
@@ -215,39 +277,18 @@ public class MicrosoftMailReader extends MailReader {
   }
 
   public void sendMail(String access_token, String to, String subject, String contentType, String content,
-      boolean hasAttachment, List<File> files,List<String> contentTypes) {
+      boolean hasAttachment, List<File> files, List<String> contentTypes) {
 
     JSONObject messageObject = composeMail(to, subject, contentType, content);
 
-    System.out.println("");
-
-    System.out.println("Mail message object : " + messageObject);
-
     if (hasAttachment)
-      messageObject = addAttachment(messageObject, files,contentTypes);
+      messageObject = addAttachment(messageObject, files, contentTypes);
 
     System.out.println("Response object : " + messageObject);
     try {
       CloseableHttpClient client = HttpClients.createDefault();
 
-      ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {
-
-        @Override
-        public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
-          int statusCode = response.getStatusLine().getStatusCode();
-          HttpEntity responseEntity = response.getEntity();
-          System.out.println("Response entity : " + responseEntity);
-          if (statusCode >= 300) {
-            throw new HttpResponseException(statusCode,
-                response.getStatusLine().getReasonPhrase());
-          }
-          JSONObject responseJSON = null;
-          if (statusCode == 202) {
-            responseJSON = new JSONObject();
-          }
-          return responseJSON;
-        }
-      };
+      HttpClientResponseHandler<JSONObject> myResponseHandler = new MyResponseHandler();
 
       HttpPost httpPost = new HttpPost(MICROSOFT_SEND_MESSAGE_ENDPOINT);
       httpPost.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
@@ -256,7 +297,7 @@ public class MicrosoftMailReader extends MailReader {
       StringEntity bodyContent = new StringEntity(messageObject.toString());
 
       httpPost.setEntity(bodyContent);
-      JSONObject responseObject = client.execute(httpPost, responseHandler);
+      JSONObject responseObject = client.execute(httpPost, myResponseHandler);
 
       System.out.println("Response json object after sending mail :" + responseObject);
 

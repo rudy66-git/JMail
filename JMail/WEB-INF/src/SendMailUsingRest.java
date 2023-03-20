@@ -59,11 +59,9 @@ public class SendMailUsingRest extends HttpServlet {
             files.add(file);
           }
         }
-
       } catch (Exception e) {
         e.printStackTrace();
       }
-
     }
 
     HttpSession session = req.getSession(false);
@@ -77,7 +75,10 @@ public class SendMailUsingRest extends HttpServlet {
 
     } else if (mail.endsWith("zohotest.com")) {
       ZOHOMailReader zohoMailReader = new ZOHOMailReader();
-      zohoMailReader.sendMail(access_token, mail, to, subject, "text", content);
+      zohoMailReader.sendMail(access_token, mail, to, subject, "text", content,hasAttachment ,  files,contentTypes);
+    } else if (mail.endsWith("gmail.com")) {
+      GMailReader gMailReader = new GMailReader();
+      gMailReader.sendMail(access_token, mail, to, subject, "text", content,hasAttachment ,  files,contentTypes);
     }
 
   }

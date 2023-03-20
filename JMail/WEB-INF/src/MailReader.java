@@ -1,23 +1,15 @@
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpResponseException;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -36,11 +28,11 @@ abstract public class MailReader{
     
     String clientId = appCredentials.getString("clientId");
     String clientSecret = appCredentials.getString("clientSecret");
-    
     try {
       CloseableHttpClient client = HttpClients.createDefault();
       HttpPost httpPost = new HttpPost(endpoint);
       List<NameValuePair> params = new ArrayList<NameValuePair>();
+      HttpClientResponseHandler<JSONObject> myResponseHandler = new MyResponseHandler();
 
       params.add(new BasicNameValuePair("client_id", clientId));
       params.add(new BasicNameValuePair("client_secret", clientSecret));
@@ -48,27 +40,7 @@ abstract public class MailReader{
       params.add(new BasicNameValuePair("grant_type", REFRESH_TOKEN_GRANT_TYPE));
       httpPost.setEntity(new UrlEncodedFormEntity(params));
 
-      ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {
-        @Override
-        public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
-          int statusCode = response.getStatusLine().getStatusCode();
-          HttpEntity responseEntity = response.getEntity();
-          System.out.println("Response code : "+statusCode);
-          if (statusCode >= 300) {
-            throw new HttpResponseException(statusCode,
-                response.getStatusLine().getReasonPhrase());
-          }
-          if (responseEntity == null) {
-            throw new ClientProtocolException("No content in response");
-          }
-
-          String json = EntityUtils.toString(responseEntity, ContentType.get(responseEntity).getCharset());
-          JSONObject responseJSON = new JSONObject(json);
-          return responseJSON;
-        }
-      };
-
-      JSONObject jsonObject = client.execute(httpPost, responseHandler);
+      JSONObject jsonObject = client.execute(httpPost, myResponseHandler);
       access_token = jsonObject.getString("access_token");
     }
     catch(Exception e){
@@ -95,30 +67,9 @@ abstract public class MailReader{
         params.add(new BasicNameValuePair("scope", scope));
       httpPost.setEntity(new UrlEncodedFormEntity(params));
 
-      ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {
+      HttpClientResponseHandler<JSONObject> myResponseHandler = new MyResponseHandler();
 
-        @Override
-        public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
-          int statusCode = response.getStatusLine().getStatusCode();
-          HttpEntity responseEntity = response.getEntity();
-          if (statusCode >= 300) {
-            throw new HttpResponseException(statusCode,
-                response.getStatusLine().getReasonPhrase());
-
-          }
-          if (responseEntity == null) {
-            throw new ClientProtocolException("No content in response");
-          }
-
-          ContentType contentType = ContentType.get(responseEntity);
-          Charset charset = contentType.getCharset();
-          String json = EntityUtils.toString(responseEntity, charset);
-          JSONObject responseJSON = new JSONObject(json);
-          return responseJSON;
-        }
-      };
-
-      responseObject = client.execute(httpPost, responseHandler);
+      responseObject = client.execute(httpPost, myResponseHandler);
     } catch(Exception e) {
       e.printStackTrace();
     }
@@ -134,29 +85,9 @@ abstract public class MailReader{
 
       httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + access_token);
 
-      ResponseHandler<JSONObject> responseHandler = new ResponseHandler<JSONObject>() {
+      HttpClientResponseHandler<JSONObject> myResponseHandler = new MyResponseHandler();
 
-        @Override
-        public JSONObject handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
-          int statusCode = response.getStatusLine().getStatusCode();
-          HttpEntity responseEntity = response.getEntity();
-          if (statusCode >= 300) {
-            throw new HttpResponseException(statusCode,
-                response.getStatusLine().getReasonPhrase());
-          }
-          if (responseEntity == null) {
-            throw new ClientProtocolException("No content in response");
-          }
-
-          ContentType contentType = ContentType.get(responseEntity);
-          Charset charset = contentType.getCharset();
-          String json = EntityUtils.toString(responseEntity, charset);
-          JSONObject responseJSON = new JSONObject(json);
-          return responseJSON;
-        }
-      };
-
-      responseObject = client.execute(httpGet, responseHandler);
+      responseObject = client.execute(httpGet, myResponseHandler);
     }
     catch(Exception e) {
       e.printStackTrace();
@@ -166,6 +97,7 @@ abstract public class MailReader{
   }
 
   abstract JSONArray readMail(JSONObject responseObject , String token);
+  abstract JSONArray searchMail(JSONObject responseObject , String token,String option , String searchValue , boolean unReadStatus);
 
 
 } 

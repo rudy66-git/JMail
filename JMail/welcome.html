@@ -88,7 +88,7 @@
       <button onclick="markAllAsRead()">MarkAllAsRead</button>
       <button onclick="sendMail()">Send</button>
     </div>
-
+    <br>
     <div>
       <form action="#" id="messageForm">
         <label for="to">To</label>
@@ -102,8 +102,6 @@
     </div>
 
     <div class="mail-list" id="mail-list">
-      <!-- <div id="noMail" style="display:none;">No mails</div> -->
-      <!-- <div class="loader"></div> -->
     </div>
   </div>
 
@@ -140,6 +138,7 @@
     function sendMail() {
 
       var form = $("#messageForm")[0];
+      var fileObject = form[3];
 
       var fileValue = fileObject.value;
 
@@ -174,13 +173,11 @@
       var optionValue = $("#options").val();
 
       $.ajax({
-        // url: 'searchMail',
+        url: 'searchMail',
         url: 'searchMailUsingRest',
         type: 'POST',
         data: { searchvalue: searchValue, unreadstatus: unreadStatus, option: optionValue },
         beforeSend: function () {
-          // var loader = $('.loader');
-          // console.log(loader);
           var loader = document.createElement("div");
           loader.setAttribute('class', 'loader');
           $("#mail-list").append(loader);
@@ -202,7 +199,7 @@
 
     function markAllAsRead() {
       $.ajax({
-        // url: 'markAllAsRead',
+        url: 'markAllAsRead',
         url: 'markAllAsReadUsingRest',
         type: 'POST',
         success: function (response) {
@@ -285,6 +282,14 @@
           details.onclick = function () {
             displayMailContentArea(this);
           };
+          
+          var hasAttachments = responseJson[i].hasAttachments;
+          if(hasAttachments == true) {
+            var fileObject = 'file'+i;
+            var file = responseJson[i].fileObject;
+            var fileName = 
+            attachFile(file);
+          }
 
           tRow.setAttribute("mailId", responseJson[i].messageId);
           tRow.setAttribute("id", 'row' + (i + 1));
